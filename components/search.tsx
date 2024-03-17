@@ -7,27 +7,30 @@ import {
   CommandItem,
   CommandList,
 } from '@/components/command'
-import { type Pokemon } from '@prisma/client'
+import { type User, type Word } from '@prisma/client'
 import { useEffect, useState } from 'react'
 import { toast } from 'react-hot-toast'
 import { useDebounce } from 'use-debounce'
 
 export interface SearchProps {
-  searchPokedex: (
-    content: string
-  ) => Promise<Array<Pokemon & { similarity: number }>>
+  searchWords: (
+    content: string,
+    userId: string
+  ) => Promise<Array<Word & { similarity: number }>>
 }
 
-export function Search({ searchPokedex }: SearchProps) {
+export function Search({ searchWords }: SearchProps) {
   const [query, setQuery] = useState('')
   const [searchResults, setSearchResults] = useState<
-    Array<Pokemon & { similarity?: number }>
+    Array<Word & { similarity?: number }>
   >([])
   const [debouncedQuery] = useDebounce(query, 150)
+  const [userId, setUserId] = useState('')
+
   useEffect(() => {
     let current = true
-    if (debouncedQuery.trim().length > 0) {
-      searchPokedex(debouncedQuery).then((results) => {
+    if (debouncedQuery.trim().length > 0 && userId) {
+      searchWords(debouncedQuery, userId).then((results) => {
         if (current) {
           setSearchResults(results)
         }
@@ -36,23 +39,24 @@ export function Search({ searchPokedex }: SearchProps) {
     return () => {
       current = false
     }
-  }, [debouncedQuery, searchPokedex])
+  }, [debouncedQuery, userId, searchWords])
+
   return (
     <div className="w-full">
       <Command label="Command Menu" shouldFilter={false} className="h-[200px]">
         <CommandInput
           id="search"
-          placeholder="Search for Pokémon"
+          placeholder="Search for words"
           className="focus:ring-0 sm:text-sm text-base focus:border-0 border-0 active:ring-0 active:border-0 ring-0 outline-0"
           value={query}
           onValueChange={(q) => setQuery(q)}
         />
         <CommandList>
           <CommandEmpty>No results found.</CommandEmpty>
-          {searchResults.map((pokemon) => (
+          {searchResults.map((word) => (
             <CommandItem
-              key={pokemon.id}
-              value={pokemon.name}
+              key={word.id}
+              value={word.word}
               className="data-[selected='true']:bg-zinc-50  flex items-center justify-between py-3"
               onSelect={(p) => {
                 console.log(p)
@@ -62,14 +66,14 @@ export function Search({ searchPokedex }: SearchProps) {
               <div className="flex items-center space-x-4">
                 <div className="space-y-1">
                   <p className="text-sm text-gray-500">
-                    {pokemon.name.substring(0, 90)}
+                    {word.word.substring(0, 90)}
                   </p>
                 </div>
               </div>
               <div className="text-sm text-gray-500">
-                {pokemon.similarity ? (
+                {word.similarity ? (
                   <div className="text-xs font-mono p-0.5 rounded bg-zinc-100">
-                    {pokemon.similarity.toFixed(3)}
+                    {word.similarity.toFixed(3)}
                   </div>
                 ) : (
                   <div />
